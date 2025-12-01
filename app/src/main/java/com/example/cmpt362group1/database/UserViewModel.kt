@@ -152,6 +152,40 @@ class UserViewModel(
         }
     }
 
+    fun followUser(currentUserId: String, userToFollowId: String) {
+        viewModelScope.launch {
+            val result = repository.followUser(currentUserId, userToFollowId)
+
+            if (result.isFailure) {
+                Log.e("INFO UserViewModel", "Failed to follow user", result.exceptionOrNull())
+            } else {
+                Log.d("INFO UserViewModel", "User $currentUserId followed user $userToFollowId")
+            }
+        }
+    }
+
+    fun unfollowUser(currentUserId: String, userToUnfollowId: String) {
+        viewModelScope.launch {
+            val result = repository.unfollowUser(currentUserId, userToUnfollowId)
+
+            if (result.isFailure) {
+                Log.e("INFO UserViewModel", "Failed to unfollow user", result.exceptionOrNull())
+            } else {
+                Log.d("INFO UserViewModel", "User $currentUserId unfollowed user $userToUnfollowId")
+            }
+        }
+    }
+
+    suspend fun getUsersByIds(userIds: List<String>): List<User> {
+        val result = repository.getUsersByIds(userIds)
+        return if (result.isSuccess) {
+            result.getOrNull() ?: emptyList()
+        } else {
+            Log.e("INFO UserViewModel", "Failed to get users by IDs", result.exceptionOrNull())
+            emptyList()
+        }
+    }
+
     fun resetOperationState() {
         _operationState.value = OperationUiState.Idle
     }

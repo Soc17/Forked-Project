@@ -12,4 +12,5 @@ sealed class Route(val route: String) {
     object EditEvent : Route("edit_event")
     object SwipeDecider : Route("swipe_decider")
     object Loading: Route("loading")
+    object ViewUserProfile : Route("view_user_profile")
 }

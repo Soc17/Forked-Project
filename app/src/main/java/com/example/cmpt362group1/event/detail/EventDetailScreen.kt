@@ -53,10 +53,13 @@ import com.example.cmpt362group1.database.UserUiState
 import com.example.cmpt362group1.database.UserViewModel
 import com.example.cmpt362group1.navigation.explore.weather.WeatherRepository
 import com.example.cmpt362group1.navigation.explore.weather.WeatherResult
+import com.example.cmpt362group1.ui.dialogs.UserListDialog
+import com.example.cmpt362group1.Route
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import androidx.navigation.NavHostController
 
 private val MonoBlack = Color(0xFF121212)
 private val MonoDarkGray = Color(0xFF424242)
@@ -71,6 +74,7 @@ fun EventDetailScreen(
     onNavigateBack: () -> Unit,
     onEditEvent: (String) -> Unit = {},
     allowEditDelete: Boolean = true,
+    navController: NavHostController? = null,
     eventViewModel: EventViewModel = viewModel(),
     userViewModel: UserViewModel = viewModel(),
     authViewModel: AuthViewModel = viewModel(),
@@ -130,6 +134,13 @@ fun EventDetailScreen(
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var eventIdPendingDelete by remember { mutableStateOf<String?>(null) }
     var showBannedListDialog by remember { mutableStateOf(false) }
+    var showParticipantsDialog by remember { mutableStateOf(false) }
+    var participantsList by remember { mutableStateOf<List<User>>(emptyList()) }
+
+    val scope = rememberCoroutineScope()
+    val currentUser = if (userState is UserUiState.Success) {
+        (userState as UserUiState.Success).user
+    } else null
 
     Scaffold(
         containerColor = Color.White,
@@ -252,6 +263,13 @@ fun EventDetailScreen(
                             onDeleteEvent = {
                                 eventIdPendingDelete = event.id
                                 showDeleteConfirm = true
+                            },
+                            onParticipantsClick = {
+                                scope.launch {
+                                    val participantIds = eventViewModel.getParticipantIds(event.id)
+                                    participantsList = userViewModel.getUsersByIds(participantIds)
+                                    showParticipantsDialog = true
+                                }
                             }
                         )
 
@@ -320,6 +338,33 @@ fun EventDetailScreen(
 
                 if (showBannedListDialog) {
                     BlockedUsersDialog(bannedUsersList, { showBannedListDialog = false }, { eventViewModel.unbanUser(event.id, it) })
+                }
+
+                if (showParticipantsDialog && navController != null) {
+                    currentUserId?.let { currentUid ->
+                        UserListDialog(
+                            title = "Participants",
+                            users = participantsList,
+                            currentUserId = currentUid,
+                            onDismiss = { showParticipantsDialog = false },
+                            onUserClick = { clickedUserId ->
+                                showParticipantsDialog = false
+                                if (clickedUserId != currentUid) {
+                                    navController.navigate("${Route.ViewUserProfile.route}/$clickedUserId")
+                                }
+                            },
+                            onFollowClick = { userToFollowId ->
+                                userViewModel.followUser(currentUid, userToFollowId)
+                            },
+                            onUnfollowClick = { userToUnfollowId ->
+                                userViewModel.unfollowUser(currentUid, userToUnfollowId)
+                            },
+                            isFollowingUser = { checkUserId ->
+                                currentUser?.followingList?.contains(checkUserId) ?: false
+                            },
+                            showFollowButton = true
+                        )
+                    }
                 }
             }
         }
@@ -498,6 +543,7 @@ private fun EventDetailScrollableContent(
     listState: LazyListState,
     onEditEvent: () -> Unit,
     onDeleteEvent: () -> Unit,
+    onParticipantsClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -517,12 +563,13 @@ private fun EventDetailScrollableContent(
             if (isHost && allowEditDelete) {
                 HostSummaryPanel(participantsCount, arrivedCount, onEditEvent,
                     onDeleteEvent)
-            } else {
-                Text("Participants: $participantsCount",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MonoBlack,
-                    fontWeight = FontWeight.Medium)
             }
+
+            Text("Participants: $participantsCount",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MonoBlack,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.clickable { onParticipantsClick() })
 
             Spacer(Modifier.height(8.dp))
             Text(event.location,
