@@ -38,6 +38,8 @@ import androidx.compose.ui.unit.times
 import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.cmpt362group1.Route
+import com.example.cmpt362group1.ui.dialogs.UserListDialog
+import kotlinx.coroutines.launch
 
 
 @Composable
@@ -113,8 +115,18 @@ fun ProfileView(
     userProfile: User,
     eventViewModel: EventViewModel = viewModel(),
     authViewModel: AuthViewModel = viewModel(),
+    userViewModel: UserViewModel = viewModel(),
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val currentUserId = remember { authViewModel.getUserId() }
+
+    // Dialog states
+    var showFollowersDialog by remember { mutableStateOf(false) }
+    var showFollowingDialog by remember { mutableStateOf(false) }
+    var followersList by remember { mutableStateOf<List<User>>(emptyList()) }
+    var followingList by remember { mutableStateOf<List<User>>(emptyList()) }
+
     val pastEventsIds = userProfile.eventsJoined
 
     // load events
@@ -176,8 +188,46 @@ fun ProfileView(
                     modifier = Modifier.wrapContentWidth()
                 ) {
                     StatBlock(label = "Events", value = userProfile.eventsJoined.size)
-                    StatBlock(label = "Followers", value = userProfile.followers)
-                    StatBlock(label = "Following", value = userProfile.following)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.clickable {
+                            scope.launch {
+                                followersList = userViewModel.getUsersByIds(userProfile.followersList)
+                                showFollowersDialog = true
+                            }
+                        }
+                    ) {
+                        Text(
+                            text = userProfile.followers.toString(),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp
+                        )
+                        Text(
+                            text = "Followers",
+                            color = Color.Gray,
+                            fontSize = 14.sp
+                        )
+                    }
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.clickable {
+                            scope.launch {
+                                followingList = userViewModel.getUsersByIds(userProfile.followingList)
+                                showFollowingDialog = true
+                            }
+                        }
+                    ) {
+                        Text(
+                            text = userProfile.following.toString(),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp
+                        )
+                        Text(
+                            text = "Following",
+                            color = Color.Gray,
+                            fontSize = 14.sp
+                        )
+                    }
                 }
             }
         }
@@ -344,6 +394,61 @@ fun ProfileView(
             ) {
                 Text("DEBUG: Delete User & Sign Out")
             }
+        }
+    }
+
+    // Dialogs
+    if (showFollowersDialog) {
+        currentUserId?.let { currentUid ->
+            UserListDialog(
+                title = "Followers",
+                users = followersList,
+                currentUserId = currentUid,
+                onDismiss = { showFollowersDialog = false },
+                onUserClick = { clickedUserId ->
+                    showFollowersDialog = false
+                    if (clickedUserId != currentUid) {
+                        mainNavController.navigate("${Route.ViewUserProfile.route}/$clickedUserId")
+                    }
+                },
+                onFollowClick = { userToFollowId ->
+                    userViewModel.followUser(currentUid, userToFollowId)
+                },
+                onUnfollowClick = { userToUnfollowId ->
+                    userViewModel.unfollowUser(currentUid, userToUnfollowId)
+                },
+                isFollowingUser = { checkUserId ->
+                    userProfile.followingList.contains(checkUserId)
+                },
+                showFollowButton = true
+            )
+        }
+    }
+
+    if (showFollowingDialog) {
+        currentUserId?.let { currentUid ->
+            UserListDialog(
+                title = "Following",
+                users = followingList,
+                currentUserId = currentUid,
+                onDismiss = { showFollowingDialog = false },
+                onUserClick = { clickedUserId ->
+                    showFollowingDialog = false
+                    if (clickedUserId != currentUid) {
+                        mainNavController.navigate("${Route.ViewUserProfile.route}/$clickedUserId")
+                    }
+                },
+                onFollowClick = { userToFollowId ->
+                    userViewModel.followUser(currentUid, userToFollowId)
+                },
+                onUnfollowClick = { userToUnfollowId ->
+                    userViewModel.unfollowUser(currentUid, userToUnfollowId)
+                },
+                isFollowingUser = { checkUserId ->
+                    userProfile.followingList.contains(checkUserId)
+                },
+                showFollowButton = true
+            )
         }
     }
 }

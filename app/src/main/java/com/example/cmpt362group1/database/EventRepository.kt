@@ -23,6 +23,8 @@ interface EventRepository {
 
     fun getParticipantsCount(eventId: String): Flow<Int>
 
+    suspend fun getParticipantIds(eventId: String): Result<List<String>>
+
     fun getCheckIns(eventId: String): Flow<CheckInData>
 
     suspend fun checkIn(eventId: String, userId: String): Result<Unit>

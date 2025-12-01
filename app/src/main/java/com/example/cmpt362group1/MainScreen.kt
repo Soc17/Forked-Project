@@ -24,6 +24,7 @@ import com.example.cmpt362group1.event.EditEvent
 import com.example.cmpt362group1.navigation.BottomNavigationBar
 import com.example.cmpt362group1.navigation.explore.MapStateHolder
 import com.example.cmpt362group1.navigation.profile.ProfileScreen
+import com.example.cmpt362group1.navigation.profile.ViewUserProfileScreen
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.cmpt362group1.auth.AuthViewModel
 import com.example.cmpt362group1.database.EventViewModel
@@ -125,6 +126,16 @@ fun MainScreen(
                     )
                 }
 
+                composable("${Route.ViewUserProfile.route}/{userId}") { backStackEntry ->
+                    val userId = backStackEntry.arguments?.getString("userId")
+                        ?: return@composable
+
+                    ViewUserProfileScreen(
+                        userId = userId,
+                        navController = navController
+                    )
+                }
+
                 composable(Route.CreateEvent.route) {
                     CreateEvent(
                         onExit = {
@@ -156,7 +167,8 @@ fun MainScreen(
                         onEditEvent = { id ->
                             navController.navigate("${Route.EditEvent.route}/$id")
                         },
-                        allowEditDelete = !readonly
+                        allowEditDelete = !readonly,
+                        navController = navController
                     )
                 }
 

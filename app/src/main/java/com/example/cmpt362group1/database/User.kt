@@ -20,6 +20,8 @@ data class User(
     val link: String = "",
     val followers: Int = 0,
     val following: Int = 0,
+    val followersList: ArrayList<String> = arrayListOf(),
+    val followingList: ArrayList<String> = arrayListOf(),
     val firstName: String = "",
     val lastName: String = "",
 

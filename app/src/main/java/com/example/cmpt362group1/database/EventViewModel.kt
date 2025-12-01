@@ -227,6 +227,16 @@ class EventViewModel(
         }
     }
 
+    suspend fun getParticipantIds(eventId: String): List<String> {
+        val result = repository.getParticipantIds(eventId)
+        return if (result.isSuccess) {
+            result.getOrNull() ?: emptyList()
+        } else {
+            Log.e("EventViewModel", "Failed to get participant IDs", result.exceptionOrNull())
+            emptyList()
+        }
+    }
+
     fun startCheckIns(eventId: String, currentUserId: String?) {
         viewModelScope.launch {
             _arrivedCount.value = 0

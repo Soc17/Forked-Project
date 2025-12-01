@@ -147,6 +147,20 @@ class EventRepositoryImpl(
         awaitClose { listenerRegistration.remove() }
     }
 
+    override suspend fun getParticipantIds(eventId: String): Result<List<String>> {
+        return try {
+            val snapshot = firestore.collection("users")
+                .whereArrayContains("eventsJoined", eventId)
+                .get()
+                .await()
+
+            val participantIds = snapshot.documents.map { it.id }
+            Result.success(participantIds)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override fun getCheckIns(eventId: String): Flow<CheckInData> = callbackFlow {
         val listenerRegistration = firestore.collection(collection)
             .document(eventId)

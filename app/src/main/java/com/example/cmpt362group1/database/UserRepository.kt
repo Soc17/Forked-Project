@@ -20,4 +20,8 @@ interface UserRepository {
     suspend fun removeJoinedEvent(uid: String, eventId: String): Result<Unit>
 
     suspend fun getUsersByIds(userIds: List<String>): Result<List<User>>
+
+    suspend fun followUser(currentUserId: String, userToFollowId: String): Result<Unit>
+
+    suspend fun unfollowUser(currentUserId: String, userToUnfollowId: String): Result<Unit>
 }
