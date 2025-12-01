@@ -35,6 +35,22 @@ import com.example.cmpt362group1.database.*
 import com.example.cmpt362group1.ui.dialogs.UserListDialog
 import kotlinx.coroutines.launch
 
+@Composable
+private fun StatBlock(label: String, value: Int) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = value.toString(),
+            fontWeight = FontWeight.Bold,
+            fontSize = 18.sp
+        )
+        Text(
+            text = label,
+            color = Color.Gray,
+            fontSize = 14.sp
+        )
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ViewUserProfileScreen(
@@ -47,26 +63,30 @@ fun ViewUserProfileScreen(
     val currentUserId = remember { authViewModel.getUserId() }
     val scope = rememberCoroutineScope()
 
+    // ViewModels for different users
+    val viewedUserViewModel: UserViewModel = viewModel(key = "viewed_$userId")
+    val currentUserViewModel: UserViewModel = viewModel(key = "current_$currentUserId")
+
     // Load the viewed user
     LaunchedEffect(userId) {
-        userViewModel.loadUser(userId)
+        viewedUserViewModel.loadUser(userId)
     }
 
     // Load current user to check following status
-    var currentUser by remember { mutableStateOf<User?>(null) }
     LaunchedEffect(currentUserId) {
         currentUserId?.let { uid ->
-            scope.launch {
-                userViewModel.repository.getUser(uid).collect { user ->
-                    currentUser = user
-                }
-            }
+            currentUserViewModel.loadUser(uid)
         }
     }
 
-    val userState by userViewModel.userState.collectAsState()
+    val viewedUserState by viewedUserViewModel.userState.collectAsState()
+    val currentUserState by currentUserViewModel.userState.collectAsState()
 
-    when (val state = userState) {
+    val currentUser = if (currentUserState is UserUiState.Success) {
+        (currentUserState as UserUiState.Success).user
+    } else null
+
+    when (val state = viewedUserState) {
         is UserUiState.Loading -> {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
@@ -85,7 +105,7 @@ fun ViewUserProfileScreen(
         is UserUiState.Success -> {}
     }
 
-    val viewedUser = (userState as UserUiState.Success).user
+    val viewedUser = (viewedUserState as UserUiState.Success).user
     val isFollowing = currentUser?.followingList?.contains(userId) ?: false
 
     // Dialog states
